@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProxyForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inconsolata:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070709;--surf:#0e0e14;--surf2:#14141e;--border:#1e1e2e;--border2:#2e2e42;--gold:#c8a044;--gold-d:#5a460e;--gold-glow:#c8a04420;--text:#ddd8cc;--dim:#5a5650;--faint:#2a2820;--green:#3a9a5c;--blue:#3a72b8;--red:#aa3a3a;--amber:#b87820}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inconsolata',monospace;font-size:14px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:-300px;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(ellipse at 50% 0%,#c8a04410 0%,transparent 65%);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:0 24px 80px}
+header{padding:52px 0 40px;text-align:center;border-bottom:1px solid var(--border);margin-bottom:40px}
+.eyebrow{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.3em;color:var(--gold-d);text-transform:uppercase;margin-bottom:14px}
+h1{font-family:'Cinzel',serif;font-size:clamp(2.4rem,7vw,4rem);font-weight:900;letter-spacing:.06em;background:linear-gradient(135deg,#ead880 0%,#c8a044 45%,#7a5818 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:10px}
+.tagline{color:var(--dim);font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-family:'Cinzel',serif}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:28px}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:11px 22px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);cursor:pointer;transition:all .15s;margin-bottom:-1px}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-btn:hover:not(.active){color:var(--text)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:16px}
+.card-head{padding:11px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-head h3{font-family:'Cinzel',serif;font-size:9.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-d)}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--gold-d);flex-shrink:0}
+.card-body{padding:20px}
+textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Inconsolata',monospace;font-size:13px;padding:14px;resize:vertical;min-height:210px;outline:none;transition:border-color .2s;line-height:1.65}
+textarea:focus{border-color:var(--gold-d)}
+textarea::placeholder{color:var(--faint)}
+.field-label{display:block;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-d);margin-bottom:6px}
+input[type=file]{display:none}
+.file-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border:1px dashed var(--border2);border-radius:3px;font-family:'Inconsolata',monospace;font-size:12px;color:var(--dim);cursor:pointer;transition:all .15s}
+.file-btn:hover{border-color:var(--gold-d);color:var(--text)}
+.file-name{font-size:11px;color:var(--green);margin-top:6px}
+.field-row{margin-top:16px}
+input[type=range]{width:100%;accent-color:var(--gold)}
+.range-label{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:4px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border:none;border-radius:3px;font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.btn-gold{background:var(--gold);color:#070709}
+.btn-gold:hover{background:#e0b850;transform:translateY(-1px);box-shadow:0 4px 24px var(--gold-glow)}
+.btn-gold:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-purple{background:linear-gradient(135deg,#5a2a8a,#3a1a5a);color:#ddd8cc;border:1px solid #6a3a9a}
+.btn-purple:hover{background:linear-gradient(135deg,#6a3a9a,#4a2a6a);transform:translateY(-1px)}
+.btn-purple:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-ghost{background:transparent;color:var(--dim);border:1px solid var(--border2)}
+.btn-ghost:hover{color:var(--text);border-color:var(--gold-d)}
+.btn-sm{padding:6px 14px;font-size:10px}
+.prog-wrap{margin:18px 0 0;display:none}.prog-wrap.show{display:block}
+.prog-bg{height:2px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:10px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold-d),var(--gold));border-radius:2px;transition:width .4s ease;width:0%}
+.prog-label{font-size:11px;color:var(--dim);display:flex;justify-content:space-between}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 0}
+.stat{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:3px;font-size:12px;font-family:'Cinzel',serif;font-weight:700;background:var(--surf2);border:1px solid var(--border)}
+.stat .n{font-size:15px}
+.tbl-wrap{overflow-x:auto;margin-top:16px;max-height:290px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-d);padding:9px 12px;border-bottom:1px solid var(--border);text-align:left;background:var(--surf2);position:sticky;top:0}
+td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--dim);vertical-align:middle}
+td.name{color:var(--text);max-width:260px;word-break:break-word}
+tr:hover td{background:var(--surf2)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:2px;font-size:10px;font-weight:600;white-space:nowrap}
+.b-ok{background:#3a9a5c18;color:var(--green);border:1px solid #3a9a5c30}
+.b-flip{background:#c8a04418;color:var(--gold);border:1px solid #c8a04430}
+.b-copy{background:#3a72b818;color:var(--blue);border:1px solid #3a72b830}
+.b-err{background:#aa3a3a18;color:var(--red);border:1px solid #aa3a3a30}
+.action-bar{display:flex;align-items:center;gap:12px;margin-top:20px;flex-wrap:wrap}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+.info-box{background:var(--surf2);border:1px solid var(--border);border-left:3px solid var(--gold-d);border-radius:3px;padding:14px 16px;font-size:12px;color:var(--dim);line-height:1.9;margin-bottom:16px}
+.info-box strong{color:var(--text)}
+hr.div{border:none;border-top:1px solid var(--border);margin:28px 0}
+#log{max-height:130px;overflow-y:auto;font-size:11px;line-height:2;padding:2px 0}
+.ll{display:flex;gap:10px}.lt{color:var(--faint);flex-shrink:0}
+.lok{color:var(--green)}.lwarn{color:var(--amber)}.lerr{color:var(--red)}.linfo{color:var(--blue)}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Proxy Workflow Tool</div>
+  <h1>ProxyForge</h1>
+  <p class="tagline">Deck list &rarr; Print-ready proxies</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('images')">&#9670; Download Images</button>
+  <button class="tab-btn"        onclick="switchTab('pdf')">&#9670; Print PDF</button>
+</div>
+
+<!-- ── TAB: Images ────────────────────────────────────────────────────────── -->
+<div id="tab-images" class="tab-pane active">
+  <div class="card">
+    <div class="card-head"><div class="dot"></div><h3>Deck List</h3></div>
+    <div class="card-body">
+      <textarea id="deck-img" placeholder="Paste your Archidekt or Moxfield export here&#10;&#10;  1x Lightning Bolt&#10;  4 Counterspell (m11) 64&#10;  2x Tarmogoyf (mm3) 188 [Threat]"></textarea>
+      <div class="prog-wrap" id="prog-img">
+        <div class="prog-bg"><div class="prog-fill" id="pf-img"></div></div>
+        <div class="prog-label"><span id="pt-img">Fetching from Scryfall...</span><span id="pp-img">0%</span></div>
+      </div>
+      <div class="action-bar" style="margin-top:16px">
+        <button class="btn btn-gold" id="btn-img" onclick="runDownload()">&#9670; Download Images</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearTab('img')">Clear</button>
+        <span id="sp-img" class="spin hidden"></span>
+      </div>
+    </div>
+  </div>
+  <div id="res-img" class="hidden">
+    <div class="stats" id="stats-img"></div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-head"><div class="dot"></div><h3>Report</h3>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportCSV('img')">&#8659; CSV</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>Card</th><th>Copy</th><th>Status</th><th>Faces</th></tr></thead><tbody id="tb-img"></tbody></table></div>
+    </div>
+    <div class="action-bar"><button class="btn btn-gold" id="dl-img">&#8659; Download proxies.zip</button></div>
+  </div>
+</div>
+
+<!-- ── TAB: PDF ───────────────────────────────────────────────────────────── -->
+<div id="tab-pdf" class="tab-pane">
+  <div class="info-box">
+    <strong>Silhouette Cameo print-and-cut PDF</strong><br>
+    Produces a PDF with Type-1 registration marks ready for Silhouette Studio.<br>
+    Layout: <strong>3x3 grid &nbsp;(9 cards/sheet)</strong> &nbsp;|&nbsp; Paper: <strong>US Letter</strong> &nbsp;|&nbsp; Card: <strong>63 x 88 mm</strong><br>
+    Pages alternate <strong>front / back</strong>. Always print at <strong>100% scale</strong> &mdash; never "Fit to Page."
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="dot"></div><h3>Deck List</h3></div>
+    <div class="card-body">
+      <textarea id="deck-pdf" placeholder="Same format as Images tab&#10;&#10;  1x Lightning Bolt&#10;  4 Counterspell (m11) 64&#10;  1x Brass's Tunnel-Grinder (lci) 135"></textarea>
+
+      <div class="field-row">
+        <label class="field-label">Card Back Image (optional)</label>
+        <label class="file-btn" for="back-file">&#8679; Upload a card back (.jpg / .png)</label>
+        <input type="file" id="back-file" accept="image/*" onchange="showFile(this)">
+        <div id="back-name" class="file-name hidden"></div>
+        <div style="font-size:11px;color:var(--dim);margin-top:5px">If omitted, back pages will be blank &mdash; fine if you are single-sided printing.</div>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label">Corner Bleed &mdash; <span id="cv">10</span> px</label>
+        <input type="range" id="cr" min="0" max="30" value="10" oninput="document.getElementById('cv').textContent=this.value">
+        <div class="range-label"><span>None</span><span>Maximum</span></div>
+        <div style="font-size:11px;color:var(--dim);margin-top:4px">Extends card corners to hide white slivers caused by rounded card art.</div>
+      </div>
+
+      <div class="prog-wrap" id="prog-pdf">
+        <div class="prog-bg"><div class="prog-fill" id="pf-pdf"></div></div>
+        <div class="prog-label"><span id="pt-pdf">Fetching from Scryfall...</span><span id="pp-pdf">0%</span></div>
+      </div>
+      <div class="action-bar" style="margin-top:16px">
+        <button class="btn btn-purple" id="btn-pdf" onclick="runPDF()">&#9670; Generate Print PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearTab('pdf')">Clear</button>
+        <span id="sp-pdf" class="spin hidden"></span>
+      </div>
+    </div>
+  </div>
+  <div id="res-pdf" class="hidden">
+    <div class="stats" id="stats-pdf"></div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-head"><div class="dot"></div><h3>Report</h3>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportCSV('pdf')">&#8659; CSV</button>
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>Card</th><th>Copy</th><th>Status</th><th>Faces</th></tr></thead><tbody id="tb-pdf"></tbody></table></div>
+    </div>
+    <div class="action-bar">
+      <button class="btn btn-purple" id="dl-pdf">&#8659; Download PDF</button>
+      <span style="font-size:11px;color:var(--dim)">Print at 100% &mdash; no fit-to-page</span>
+    </div>
+  </div>
+</div>
+
+<!-- Log -->
+<hr class="div">
+<div class="card">
+  <div class="card-head"><div class="dot"></div><h3>Log</h3>
+    <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="document.getElementById('log').innerHTML=''">Clear</button>
+  </div>
+  <div class="card-body" style="padding:10px 18px"><div id="log"></div></div>
+</div>
+</div>
+
+<script>
+let reports={img:[],pdf:[]}, blobs={img:null,pdf:null};
+
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['images','pdf'][i]===t));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+}
+function showFile(inp){const el=document.getElementById('back-name');if(inp.files.length){el.textContent=inp.files[0].name;el.classList.remove('hidden');}else el.classList.add('hidden');}
+function clearTab(w){document.getElementById('deck-'+w).value='';document.getElementById('res-'+w).classList.add('hidden');if(w==='pdf')document.getElementById('back-name').classList.add('hidden');log('Cleared','info');}
+function log(msg,t='info'){const el=document.getElementById('log'),now=new Date().toLocaleTimeString('en-GB',{hour12:false}),d=document.createElement('div');d.className='ll';d.innerHTML=`<span class="lt">${now}</span><span class="l${t}">${msg}</span>`;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function setProg(w,pct,label){document.getElementById('pf-'+w).style.width=pct+'%';document.getElementById('pp-'+w).textContent=Math.round(pct)+'%';if(label)document.getElementById('pt-'+w).textContent=label;}
+function dlBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+
+function renderResults(w,report,summary,blob){
+  reports[w]=report; blobs[w]=blob;
+  document.getElementById('stats-'+w).innerHTML=`
+    <div class="stat"><span style="color:var(--green)" class="n">${summary.ok??0}</span> Downloaded</div>
+    <div class="stat"><span style="color:var(--gold)"  class="n">${summary.flips??0}</span> Flip/DFC</div>
+    <div class="stat"><span style="color:var(--blue)"  class="n">${summary.copied??0}</span> Copied</div>
+    ${summary.errors?`<div class="stat"><span style="color:var(--red)" class="n">${summary.errors}</span> Errors</div>`:''}`;
+  const tb=document.getElementById('tb-'+w);tb.innerHTML='';
+  for(const r of report){
+    const badge={ok:'<span class="badge b-ok">OK</span>',flip:'<span class="badge b-flip">Flip/DFC</span>',copied:'<span class="badge b-copy">Copied</span>',error:'<span class="badge b-err">Error</span>'}[r.status]??r.status;
+    const faces=r.flip?'<span style="color:var(--gold);font-size:11px">front + back</span>':'<span style="color:var(--dim);font-size:11px">front only</span>';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="name">${r.name}${r.reason?` <span style="color:var(--red);font-size:10px">(${r.reason})</span>`:''}</td><td style="color:var(--dim)">${r.suffix||'&#8212;'}</td><td>${badge}</td><td>${faces}</td>`;
+    tb.appendChild(tr);
+  }
+  document.getElementById('res-'+w).classList.remove('hidden');
+}
+
+async function runWithProgress(w, fetchFn, successMsg, blobFilename){
+  const btn=document.getElementById('btn-'+w);
+  btn.disabled=true;
+  document.getElementById('sp-'+w).classList.remove('hidden');
+  document.getElementById('res-'+w).classList.add('hidden');
+  document.getElementById('prog-'+w).classList.add('show');
+  setProg(w,0,'Fetching images from Scryfall...');
+  let pct=0;
+  const tick=setInterval(()=>{pct=Math.min(pct+Math.random()*1.3,90);setProg(w,pct,pct>70?'Building output...':'Fetching images from Scryfall...');},400);
+  try{
+    const {summary,report,blob}=await fetchFn();
+    clearInterval(tick); setProg(w,100,'Done!');
+    renderResults(w,report,summary,blob);
+    const fname=typeof blobFilename==='function'?blobFilename(summary):blobFilename;
+    document.getElementById('dl-'+w).onclick=()=>{dlBlob(blob,fname);log('Downloaded '+fname,'ok');};
+    log(successMsg(summary),summary.errors>0?'warn':'ok');
+  }catch(e){clearInterval(tick);log('Error: '+e.message,'err');}
+  finally{btn.disabled=false;document.getElementById('sp-'+w).classList.add('hidden');setTimeout(()=>document.getElementById('prog-'+w).classList.remove('show'),1200);}
+}
+
+async function runDownload(){
+  const deck=document.getElementById('deck-img').value.trim();
+  if(!deck){log('No deck list.','err');return;}
+  log('Starting image download...','info');
+  await runWithProgress('img', async()=>{
+    const fd=new FormData(); fd.append('deck_list',deck);
+    const res=await fetch('/api/download',{method:'POST',body:fd});
+    if(!res.ok)throw new Error(await res.text());
+    return{summary:JSON.parse(res.headers.get('X-Summary')||'{}'),report:JSON.parse(res.headers.get('X-Report')||'[]'),blob:await res.blob()};
+  }, s=>`Done. ${s.ok} downloaded, ${s.flips} flip, ${s.copied} copied, ${s.errors??0} errors.`, 'proxies.zip');
+}
+
+async function runPDF(){
+  const deck=document.getElementById('deck-pdf').value.trim();
+  if(!deck){log('No deck list.','err');return;}
+  log('Starting PDF generation...','info');
+  await runWithProgress('pdf', async()=>{
+    const fd=new FormData();
+    fd.append('deck_list',deck);
+    fd.append('extend_corners',document.getElementById('cr').value);
+    const bf=document.getElementById('back-file').files[0];
+    if(bf)fd.append('generic_back',bf);
+    const res=await fetch('/api/pdf',{method:'POST',body:fd});
+    if(!res.ok)throw new Error(await res.text());
+    return{summary:JSON.parse(res.headers.get('X-Summary')||'{}'),report:JSON.parse(res.headers.get('X-Report')||'[]'),blob:await res.blob()};
+  }, s=>`PDF ready. ${s.ok} cards, ${Math.ceil(s.ok/9)} sheet(s). Print at 100% scale.`, s=>`proxies_${s.ok}cards.pdf`);
+}
+
+function exportCSV(w){
+  const r=reports[w]||[];if(!r.length)return;
+  const rows=[['Card','Copy','Status','Flip'],...r.map(x=>[x.name,x.suffix||'',x.status,x.flip?'yes':'no'])];
+  dlBlob(new Blob([rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n')],{type:'text/csv'}),`report_${w}.csv`);
+  log('Exported CSV','ok');
+}
+</script>
+</body>
+</html>
