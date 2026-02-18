@@ -37,20 +37,29 @@ ROWS = 2
 CARDS_PER_PAGE = COLS * ROWS
 
 # ── Registration mark geometry (pixel units at 300 PPI) ──────────────────────
-# ── Registration mark geometry (pixel units matching Official PDF v2) ────────
-REG_INSET_PX = 112
-REG_SIZE_PX  = 188
+# ── Registration mark geometry (explicit from user screenshot) ───────────────
+# Inset: 0.394 in -> 118 px
+# Length: 0.350 in -> 105 px
+# Thickness: 0.039 in -> 12 px (approx)
+REG_INSET_PX = 118
+REG_SIZE_PX  = 105
 REG_THICK_PX = 12
-REG_GAP_PX   = 0     # Gap seems negligible or handled by grid placement
+REG_GAP_PX   = 0
 
-# ── Card grid (coordinates matching Official PDF v2) ────────────────────────
-GRID_X = 150
-GRID_Y = 224
+# ── Card grid (centered with 12px gap for 0.5mm bleed) ──────────────────────
+# Card: 744x1039 px
+# Gap: 12px (allows 6px bleed on each side without overlap)
+CARD_GAP_X = 744 + 12
+CARD_GAP_Y = 1039 + 12
 
-# 754px width discovered in Official PDF (likely 744px + bleed)
-# 1076px height discovered (likely 1039px + bleed)
-CARD_GAP_X = 754  
-CARD_GAP_Y = 1076
+GRID_W = COLS * CARD_GAP_X - 12 # Subtract last gap for total width? No, simplier to just center the block
+# Actually, the grid width is (COLS * 744) + ((COLS - 1) * 12)
+GRID_BLOCK_W = (COLS * 744) + ((COLS - 1) * 12)
+GRID_BLOCK_H = (ROWS * 1039) + ((ROWS - 1) * 12)
+
+# Center the grid block on the page
+GRID_X = (PAGE_W_PX - GRID_BLOCK_W) // 2
+GRID_Y = (PAGE_H_PX - GRID_BLOCK_H) // 2
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -151,7 +160,7 @@ def build_pdf(
     front_images:   list[bytes],
     back_images:    list[bytes | None],
     generic_back:   bytes | None = None,
-    extend_corners: int = 10,
+    extend_corners: int = 6,  # Default to 0.5mm bleed (6px)
     quality:        int = 90,
     paper_size:     str = "letter",   # reserved for future multi-size support
 ) -> bytes:
