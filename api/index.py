@@ -1,3 +1,7 @@
-from main import app
+import sys
+from pathlib import Path
 
-# The app is already defined in main.py and imported here for Vercel
+# Add the parent directory to the path so we can import main
+sys.path.append(str(Path(__file__).parent.parent))
+
+from main import app

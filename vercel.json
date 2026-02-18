@@ -1,13 +1,6 @@
 {
   "buildCommand": "pip install -r requirements.txt",
-  "devCommand": "uvicorn main:app --reload",
   "env": {
     "PYTHONUNBUFFERED": "true"
-  },
-  "functions": {
-    "api/index.py": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
   }
 }
