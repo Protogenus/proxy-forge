@@ -37,11 +37,11 @@ ROWS = 2
 CARDS_PER_PAGE = COLS * ROWS
 
 # ── Registration mark geometry (pixel units at 300 PPI) ──────────────────────
-# Silhouette default: 0.25 in inset, 0.20 in arm, ~0.03 in thick
-REG_INSET_PX = round(0.25 * PPI)   # 75 px
-REG_SIZE_PX  = round(0.20 * PPI)   # 60 px
-REG_THICK_PX = round(0.03 * PPI)   # 9 px
-REG_GAP_PX   = round(0.04 * PPI)   # 12 px — gap between mark and print area
+# Silhouette "Max Space" settings (10mm = 118px @ 300 DPI)
+REG_INSET_PX = 118
+REG_SIZE_PX  = 118
+REG_THICK_PX = 6
+REG_GAP_PX   = 0     # No gap to maximize printable area
 
 # ── Printable area (inside reg marks + gap) ───────────────────────────────────
 PRINT_X = REG_INSET_PX + REG_SIZE_PX + REG_GAP_PX
@@ -134,13 +134,12 @@ def _place_card(page: Image.Image, img_bytes: bytes,
 
 
 def _add_label(page: Image.Image, text: str) -> None:
-    """Stamp a small grey label in the bottom-left margin."""
+    """Stamp a small grey label centered in the bottom margin."""
     draw = ImageDraw.Draw(page)
-    draw.text(
-        (REG_INSET_PX, PAGE_H_PX - REG_INSET_PX + 4),
-        text,
-        fill=(160, 160, 160),
-    )
+    w = draw.textlength(text)
+    x = (PAGE_W_PX - w) // 2
+    y = PAGE_H_PX - REG_INSET_PX + (REG_INSET_PX // 2)
+    draw.text((x, y), text, fill=(160, 160, 160))
 
 
 def _page_to_jpeg(page: Image.Image, quality: int = 90) -> bytes:
