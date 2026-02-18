@@ -37,19 +37,20 @@ ROWS = 2
 CARDS_PER_PAGE = COLS * ROWS
 
 # ── Registration mark geometry (pixel units at 300 PPI) ──────────────────────
-# ── Registration mark geometry (pixel units matching Official PDF) ──────────
-REG_INSET_PX = 113
-REG_SIZE_PX  = 71
+# ── Registration mark geometry (pixel units matching Official PDF v2) ────────
+REG_INSET_PX = 112
+REG_SIZE_PX  = 188
 REG_THICK_PX = 12
-REG_GAP_PX   = 3
+REG_GAP_PX   = 0     # Gap seems negligible or handled by grid placement
 
-# ── Card grid (coordinates matching Official PDF) ───────────────────────────
-GRID_X = 189
-GRID_Y = 225
+# ── Card grid (coordinates matching Official PDF v2) ────────────────────────
+GRID_X = 150
+GRID_Y = 224
 
-# 700px gap discovered between Card 1 and Card 2 in Official PDF
-CARD_GAP_X = 700  # Note: Standard card is 744, so they overlap by 44px
-CARD_GAP_Y = CARD_H_PX # Assume standard vertical stacking
+# 754px width discovered in Official PDF (likely 744px + bleed)
+# 1076px height discovered (likely 1039px + bleed)
+CARD_GAP_X = 754  
+CARD_GAP_Y = 1076
 
 
 # ─────────────────────────────────────────────────────────────────────────────
