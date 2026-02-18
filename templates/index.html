@@ -76,6 +76,10 @@ hr.div{border:none;border-top:1px solid var(--border);margin:28px 0}
 .ll{display:flex;gap:10px}.lt{color:var(--faint);flex-shrink:0}
 .lok{color:var(--green)}.lwarn{color:var(--amber)}.lerr{color:var(--red)}.linfo{color:var(--blue)}
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+.url-banner{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:3px;border:1px solid var(--blue);background:#3a72b812;font-size:12px;color:var(--blue);margin-top:12px}
+.url-banner.err{border-color:var(--red);background:#aa3a3a12;color:var(--red)}
+.url-banner .url-spin{display:inline-block;width:11px;height:11px;border:2px solid #3a72b840;border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -97,7 +101,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:28px 0}
   <div class="card">
     <div class="card-head"><div class="dot"></div><h3>Deck List</h3></div>
     <div class="card-body">
-      <textarea id="deck-img" placeholder="Paste your Archidekt or Moxfield export here&#10;&#10;  1x Lightning Bolt&#10;  4 Counterspell (m11) 64&#10;  2x Tarmogoyf (mm3) 188 [Threat]"></textarea>
+      <textarea id="deck-img" placeholder="Paste a deck list OR an Archidekt / Moxfield URL&#10;&#10;  https://archidekt.com/decks/1234567/my-deck&#10;  https://www.moxfield.com/decks/aBcDeFgHi&#10;&#10;Or plain text:&#10;  1x Lightning Bolt&#10;  4 Counterspell (m11) 64&#10;  2x Tarmogoyf (mm3) 188 [Threat]" oninput="detectURL(this,'img')"></textarea>
+      <div id="url-banner-img" class="url-banner hidden"></div>
       <div class="prog-wrap" id="prog-img">
         <div class="prog-bg"><div class="prog-fill" id="pf-img"></div></div>
         <div class="prog-label"><span id="pt-img">Fetching from Scryfall...</span><span id="pp-img">0%</span></div>
@@ -132,7 +137,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:28px 0}
   <div class="card">
     <div class="card-head"><div class="dot"></div><h3>Deck List</h3></div>
     <div class="card-body">
-      <textarea id="deck-pdf" placeholder="Same format as Images tab&#10;&#10;  1x Lightning Bolt&#10;  4 Counterspell (m11) 64&#10;  1x Brass's Tunnel-Grinder (lci) 135"></textarea>
+      <textarea id="deck-pdf" placeholder="Same as Images tab &#8212; URL or plain text&#10;&#10;  https://archidekt.com/decks/1234567/my-deck&#10;  https://www.moxfield.com/decks/aBcDeFgHi&#10;&#10;Or:&#10;  1x Lightning Bolt&#10;  4 Counterspell (m11) 64" oninput="detectURL(this,'pdf')"></textarea>
 
       <div class="field-row">
         <label class="field-label">Card Back Image (optional)</label>
@@ -149,6 +154,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:28px 0}
         <div style="font-size:11px;color:var(--dim);margin-top:4px">Extends card corners to hide white slivers caused by rounded card art.</div>
       </div>
 
+      <div id="url-banner-pdf" class="url-banner hidden"></div>
       <div class="prog-wrap" id="prog-pdf">
         <div class="prog-bg"><div class="prog-fill" id="pf-pdf"></div></div>
         <div class="prog-label"><span id="pt-pdf">Fetching from Scryfall...</span><span id="pp-pdf">0%</span></div>
@@ -271,6 +277,46 @@ function exportCSV(w){
   dlBlob(new Blob([rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n')],{type:'text/csv'}),`report_${w}.csv`);
   log('Exported CSV','ok');
 }
+
+// ── URL detection & resolution ─────────────────────────────────────────────
+let urlDebounce = {};
+
+function detectURL(ta, which) {
+  const val = ta.value.trim();
+  const banner = document.getElementById('url-banner-' + which);
+  // Only trigger if the entire content looks like a URL (single line starting with http)
+  const isURL = /^https?:\/\/(www\.)?(archidekt\.com|moxfield\.com)\/decks\/\S+$/i.test(val);
+  if (!isURL) { banner.className = 'url-banner hidden'; return; }
+
+  banner.className = 'url-banner';
+  banner.innerHTML = '<span class="url-spin"></span> Fetching deck from ' + (val.includes('archidekt') ? 'Archidekt' : 'Moxfield') + '...';
+
+  clearTimeout(urlDebounce[which]);
+  urlDebounce[which] = setTimeout(() => resolveURL(ta, which, val), 600);
+}
+
+async function resolveURL(ta, which, url) {
+  const banner = document.getElementById('url-banner-' + which);
+  try {
+    const fd = new FormData(); fd.append('url', url);
+    const res = await fetch('/api/resolve-url', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to fetch deck');
+    ta.value = data.deck_list;
+    const count = data.deck_list.split('\n').filter(l => l.trim()).length;
+    banner.className = 'url-banner';
+    banner.innerHTML = '&#10003; Loaded ' + count + ' lines from ' + (url.includes('archidekt') ? 'Archidekt' : 'Moxfield') + '. Edit below if needed.';
+    banner.style.borderColor = 'var(--green)';
+    banner.style.background = '#3a9a5c12';
+    banner.style.color = 'var(--green)';
+    log('Loaded deck from URL: ' + count + ' cards', 'ok');
+  } catch(e) {
+    banner.className = 'url-banner err';
+    banner.innerHTML = '&#10007; ' + e.message;
+    log('URL fetch failed: ' + e.message, 'err');
+  }
+}
+
 </script>
 </body>
 </html>

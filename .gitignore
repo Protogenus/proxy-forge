@@ -29,4 +29,5 @@ env/
 .DS_Store
 .env
 *.log
+proxyforge_v2/
 .vercel

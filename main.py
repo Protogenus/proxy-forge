@@ -17,6 +17,101 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 FLIP_LAYOUTS = {"transform", "modal_dfc", "flip", "reversible_card", "battle", "meld"}
 SCRYFALL_HEADERS = {"User-Agent": "ProxyForge/2.0", "Accept": "application/json"}
 
+# ── URL → deck list fetchers ───────────────────────────────────────────────────
+
+def _http_get_json(url: str, headers: dict = None) -> dict:
+    h = {"User-Agent": "ProxyForge/2.0", "Accept": "application/json"}
+    if headers:
+        h.update(headers)
+    req = urllib.request.Request(url, headers=h)
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.loads(r.read())
+
+def fetch_archidekt(url: str) -> str:
+    """
+    Archidekt deck URL: https://archidekt.com/decks/1234567/deckname
+    API:                https://archidekt.com/api/decks/1234567/
+    Returns plain deck list text.
+    """
+    m = re.search(r'archidekt\.com/decks/(\d+)', url)
+    if not m:
+        raise ValueError("Could not extract Archidekt deck ID from URL")
+    deck_id = m.group(1)
+    api_url = f"https://archidekt.com/api/decks/{deck_id}/"
+    data = _http_get_json(api_url)
+
+    lines = []
+    for card_entry in data.get("cards", []):
+        qty      = card_entry.get("quantity", 1)
+        card     = card_entry.get("card", {})
+        name     = card.get("oracleCard", {}).get("name", "") or card.get("name", "")
+        edition  = card_entry.get("edition", {})
+        set_code = edition.get("editioncode", "") if isinstance(edition, dict) else ""
+        cn       = card_entry.get("collectorNumber", "")
+        # Skip sideboard / maybeboard categories
+        cats = card_entry.get("categories", [])
+        if any(c.lower() in ("sideboard", "maybeboard", "maybe") for c in cats):
+            continue
+        if not name:
+            continue
+        if set_code and cn:
+            lines.append(f"{qty}x {name} ({set_code}) {cn}")
+        else:
+            lines.append(f"{qty}x {name}")
+    return "\n".join(lines)
+
+def fetch_moxfield(url: str) -> str:
+    """
+    Moxfield deck URL: https://www.moxfield.com/decks/aBcDeFgH
+    API:               https://api2.moxfield.com/v3/decks/all/aBcDeFgH
+    Returns plain deck list text.
+    """
+    m = re.search(r'moxfield\.com/decks/([A-Za-z0-9_-]+)', url)
+    if not m:
+        raise ValueError("Could not extract Moxfield deck ID from URL")
+    public_id = m.group(1)
+    api_url   = f"https://api2.moxfield.com/v3/decks/all/{public_id}"
+    # Moxfield needs a browser-like UA to pass Cloudflare
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/122.0.0.0 Safari/537.36"
+        ),
+        "Referer": "https://www.moxfield.com/",
+    }
+    data = _http_get_json(api_url, headers=headers)
+
+    lines = []
+    # Moxfield groups cards by zone: mainboard, commanders, etc.
+    for zone_name, zone in data.get("boards", {}).items():
+        if zone_name.lower() in ("sideboard", "maybeboard"):
+            continue
+        for card_id, entry in zone.get("cards", {}).items():
+            qty  = entry.get("quantity", 1)
+            card = entry.get("card", {})
+            name = card.get("name", "")
+            set_code = card.get("set", "")
+            cn   = card.get("cn", "") or card.get("collectorNumber", "")
+            if not name:
+                continue
+            if set_code and cn:
+                lines.append(f"{qty}x {name} ({set_code}) {cn}")
+            else:
+                lines.append(f"{qty}x {name}")
+    return "\n".join(lines)
+
+def fetch_deck_from_url(url: str) -> str:
+    """Detect site and fetch deck list text from a URL."""
+    url = url.strip()
+    if "archidekt.com" in url:
+        return fetch_archidekt(url)
+    elif "moxfield.com" in url:
+        return fetch_moxfield(url)
+    else:
+        raise ValueError(f"Unsupported deck URL. Supported: archidekt.com, moxfield.com")
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def safe_filename(name):
@@ -154,6 +249,19 @@ async def fetch_all_cards(deck_list):
     return front_list, back_list, report, summary
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
+
+@app.post("/api/resolve-url")
+async def resolve_url(url: str = Form(...)):
+    """Fetch a deck list from an Archidekt or Moxfield URL, return as plain text."""
+    try:
+        deck_text = await asyncio.to_thread(fetch_deck_from_url, url)
+        if not deck_text.strip():
+            raise HTTPException(400, "Deck appears to be empty or private.")
+        return {"deck_list": deck_text}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"Failed to fetch deck: {e}")
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
