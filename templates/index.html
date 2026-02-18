@@ -129,10 +129,10 @@ hr.div{border:none;border-top:1px solid var(--border);margin:28px 0}
 <!-- ── TAB: PDF ───────────────────────────────────────────────────────────── -->
 <div id="tab-pdf" class="tab-pane">
   <div class="info-box">
-    <strong>Silhouette Cameo print-and-cut PDF</strong><br>
-    Produces a PDF with Type-1 registration marks ready for Silhouette Studio.<br>
-    Layout: <strong>3x3 grid &nbsp;(9 cards/sheet)</strong> &nbsp;|&nbsp; Paper: <strong>US Letter</strong> &nbsp;|&nbsp; Card: <strong>63 x 88 mm</strong><br>
-    Pages alternate <strong>front / back</strong>. Always print at <strong>100% scale</strong> &mdash; never "Fit to Page."
+    <strong>Standard Print-Ready PDF</strong><br>
+    Produces a professional proxy printing PDF with corner registration marks.<br>
+    Layout: <strong>4x2 grid &nbsp;(8 cards/sheet)</strong> &nbsp;|&nbsp; Paper: <strong>US Letter</strong> &nbsp;|&nbsp; Card: <strong>2.5 x 3.5 in</strong><br>
+    Pages alternate <strong>front / back</strong>. Print at <strong>100% scale</strong> for best results.
   </div>
   <div class="card">
     <div class="card-head"><div class="dot"></div><h3>Deck List</h3></div>
@@ -145,13 +145,6 @@ hr.div{border:none;border-top:1px solid var(--border);margin:28px 0}
         <input type="file" id="back-file" accept="image/*" onchange="showFile(this)">
         <div id="back-name" class="file-name hidden"></div>
         <div style="font-size:11px;color:var(--dim);margin-top:5px">If omitted, back pages will be blank &mdash; fine if you are single-sided printing.</div>
-      </div>
-
-      <div class="field-row">
-        <label class="field-label">Corner Bleed &mdash; <span id="cv">10</span> px</label>
-        <input type="range" id="cr" min="0" max="30" value="10" oninput="document.getElementById('cv').textContent=this.value">
-        <div class="range-label"><span>None</span><span>Maximum</span></div>
-        <div style="font-size:11px;color:var(--dim);margin-top:4px">Extends card corners to hide white slivers caused by rounded card art.</div>
       </div>
 
       <div id="url-banner-pdf" class="url-banner hidden"></div>
@@ -262,13 +255,12 @@ async function runPDF(){
   await runWithProgress('pdf', async()=>{
     const fd=new FormData();
     fd.append('deck_list',deck);
-    fd.append('extend_corners',document.getElementById('cr').value);
     const bf=document.getElementById('back-file').files[0];
     if(bf)fd.append('generic_back',bf);
     const res=await fetch('/api/pdf',{method:'POST',body:fd});
     if(!res.ok)throw new Error(await res.text());
     return{summary:JSON.parse(res.headers.get('X-Summary')||'{}'),report:JSON.parse(res.headers.get('X-Report')||'[]'),blob:await res.blob()};
-  }, s=>`PDF ready. ${s.ok} cards, ${Math.ceil(s.ok/9)} sheet(s). Print at 100% scale.`, s=>`proxies_${s.ok}cards.pdf`);
+  }, s=>`PDF ready. ${s.ok} cards, ${Math.ceil(s.ok/8)} sheet(s). Standard 4x2 layout.`, s=>`proxies_${s.ok}cards.pdf`);
 }
 
 function exportCSV(w){

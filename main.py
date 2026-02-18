@@ -295,7 +295,6 @@ async def api_download(deck_list: str = Form(...)):
 async def api_pdf(
     deck_list:      str        = Form(...),
     generic_back:   UploadFile = File(None),
-    extend_corners: int        = Form(10),
 ):
     from pdf_gen import build_pdf
 
@@ -318,7 +317,6 @@ async def api_pdf(
         front_images=fronts,
         back_images=backs,
         generic_back=generic_back_bytes,
-        extend_corners=extend_corners,
     )
 
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={

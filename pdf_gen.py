@@ -1,74 +1,57 @@
 """
 pdf_gen.py - ProxyForge PDF Generator
-Produces a Silhouette Cameo print-and-cut compatible PDF with:
-  - Standard MTG card size: 63 x 88 mm
+Produces a standard print-ready PDF with:
+  - Standard MTG card size: 63.5 x 88.9 mm (2.5 x 3.5 in)
   - Letter paper: 215.9 x 279.4 mm (8.5 x 11 in)
-  - 3x3 grid = 9 cards per page
-  - Silhouette Type-1 registration marks (3-point: top-left square, top-right L, bottom-left L)
-  - 3mm bleed extension on card corners
+  - 4x2 grid = 8 cards per page
+  - Simple corner registration marks
   - Alternating front/back pages for duplex printing
 """
 
 from io import BytesIO
 from PIL import Image
 from reportlab.pdfgen import canvas
-from reportlab.lib.units import mm
+from reportlab.lib.units import mm, inch
 from reportlab.lib.pagesizes import letter
 
 # ── Card & page constants ───────────────────────────────────────────────────
-CARD_W      = 63 * mm       # 63 mm
-CARD_H      = 88 * mm       # 88 mm
-PAGE_W, PAGE_H = letter     # 215.9 x 279.4 mm in points
+CARD_W      = 2.5 * inch     # Standard MTG card width
+CARD_H      = 3.5 * inch     # Standard MTG card height
+PAGE_W, PAGE_H = letter      # 215.9 x 279.4 mm (8.5 x 11 in)
 
-COLS        = 3
-ROWS        = 3
+COLS        = 4
+ROWS        = 2
 CARDS_PER_PAGE = COLS * ROWS
 
-# Registration mark geometry (Silhouette default Type-1 positions)
-# Square mark: top-left corner
-# L-marks: top-right and bottom-left corners
-REG_INSET   = 6.35 * mm    # 0.25 inch inset from page edge (Silhouette default)
-REG_SIZE    = 5    * mm    # mark arm length
-REG_THICK   = 0.8  * mm    # line thickness
-REG_GAP     = 1    * mm    # gap between mark end and printable area
+# Margins and registration marks
+MARGIN      = 0.5 * inch    # margin from page edge
+REG_SIZE    = 0.15 * inch   # small square registration mark size
+REG_THICK   = 2              # line thickness in points
 
-# Printable area starts after reg marks + gap
-PRINT_X     = REG_INSET + REG_SIZE + REG_GAP
-PRINT_Y     = REG_INSET + REG_SIZE + REG_GAP
-PRINT_W     = PAGE_W - PRINT_X - (REG_INSET + REG_SIZE + REG_GAP)
-PRINT_H     = PAGE_H - PRINT_Y - (REG_INSET + REG_SIZE + REG_GAP)
-
-# Card grid: centre the 3x3 grid in the printable area
+# Calculate grid positioning
 GRID_W      = COLS * CARD_W
 GRID_H      = ROWS * CARD_H
-GRID_X      = PRINT_X + (PRINT_W - GRID_W) / 2   # left edge of grid
-GRID_Y      = PRINT_Y + (PRINT_H - GRID_H) / 2   # bottom edge of grid
+GRID_X      = (PAGE_W - GRID_W) / 2    # center horizontally
+GRID_Y      = (PAGE_H - GRID_H) / 2    # center vertically
 
 
 def _draw_reg_marks(c: canvas.Canvas):
-    """Draw Silhouette Type-1 3-point registration marks."""
-    c.setFillColorRGB(0, 0, 0)
-    c.setStrokeColorRGB(0, 0, 0)
+    """Draw simple corner registration marks."""
     c.setLineWidth(REG_THICK)
-
+    c.setStrokeColorRGB(0, 0, 0)
+    
     s = REG_SIZE
-    i = REG_INSET
-    t = REG_THICK
-
-    # ── Top-left: filled square ─────────────────────────────────────────────
-    c.rect(i, PAGE_H - i - s, s, s, fill=1, stroke=0)
-
-    # ── Top-right: L-shape (two rectangles) ────────────────────────────────
-    tr_x = PAGE_W - i - s
-    tr_y = PAGE_H - i - s
-    c.rect(tr_x, tr_y + s - t, s, t, fill=1, stroke=0)      # horizontal
-    c.rect(tr_x, tr_y, t, s, fill=1, stroke=0)               # vertical
-
-    # ── Bottom-left: L-shape (two rectangles) ──────────────────────────────
-    bl_x = i
-    bl_y = i
-    c.rect(bl_x, bl_y, s, t, fill=1, stroke=0)               # horizontal
-    c.rect(bl_x, bl_y, t, s, fill=1, stroke=0)               # vertical
+    t = REG_THICK / 2
+    
+    # Top-left: small square
+    c.rect(MARGIN - s/2, PAGE_H - MARGIN - s/2, s, s, fill=0, stroke=1)
+    
+    # Top-right: small square
+    c.rect(PAGE_W - MARGIN - s/2, PAGE_H - MARGIN - s/2, s, s, fill=0, stroke=1)
+    
+    # Bottom-left: L-shape
+    c.line(MARGIN - s/2, MARGIN - s/2, MARGIN + s/2, MARGIN - s/2)
+    c.line(MARGIN - s/2, MARGIN - s/2, MARGIN - s/2, MARGIN + s/2)
 
 
 def _card_position(index: int) -> tuple[float, float]:
@@ -84,27 +67,18 @@ def _card_position(index: int) -> tuple[float, float]:
 
 
 def _place_image(c: canvas.Canvas, img_bytes: bytes, x: float, y: float,
-                 w: float = CARD_W, h: float = CARD_H, extend_corners: int = 0):
-    """Draw a card image at (x,y) with optional corner bleed extension."""
+                 w: float = CARD_W, h: float = CARD_H):
+    """Draw a card image at (x,y)."""
     try:
         img = Image.open(BytesIO(img_bytes)).convert("RGB")
     except Exception:
         # Draw placeholder if image is broken
-        c.setFillColorRGB(0.15, 0.15, 0.2)
+        c.setFillColorRGB(0.85, 0.85, 0.85)
         c.rect(x, y, w, h, fill=1, stroke=0)
         return
 
-    if extend_corners > 0:
-        # Expand image slightly to cover rounded-corner bleed gaps
-        px = extend_corners
-        new_w = img.width  + px * 2
-        new_h = img.height + px * 2
-        expanded = Image.new("RGB", (new_w, new_h), (0, 0, 0))
-        expanded.paste(img, (px, px))
-        img = expanded
-
     buf = BytesIO()
-    img.save(buf, format="JPEG", quality=90)
+    img.save(buf, format="JPEG", quality=95)
     buf.seek(0)
 
     c.drawImage(
@@ -119,11 +93,9 @@ def build_pdf(
     front_images: list[bytes],          # ordered list of front image bytes
     back_images:  list[bytes | None],   # matching backs (None = use generic_back)
     generic_back: bytes | None = None,  # single back used for all normal cards
-    extend_corners: int = 10,
-    paper_size: str = "letter",
 ) -> bytes:
     """
-    Build a print-and-cut PDF.
+    Build a standard print-ready PDF.
     Pages alternate: front sheet, back sheet, front sheet, back sheet ...
     Front page: cards in normal reading order (left-right, top-bottom).
     Back page:  cards mirrored horizontally so they align when sheet is flipped.
@@ -146,13 +118,12 @@ def build_pdf(
         _draw_reg_marks(c)
         for i in range(slots):
             x, y = _card_position(i)
-            _place_image(c, front_images[start + i], x, y,
-                         extend_corners=extend_corners)
+            _place_image(c, front_images[start + i], x, y)
 
-        c.setFont("Helvetica", 6)
-        c.setFillColorRGB(0.6, 0.6, 0.6)
-        c.drawString(REG_INSET, REG_INSET * 0.4,
-                     f"ProxyForge | Page {page+1} front | Print at 100% scale, no fit-to-page")
+        c.setFont("Helvetica", 8)
+        c.setFillColorRGB(0.4, 0.4, 0.4)
+        c.drawString(MARGIN, MARGIN * 0.3,
+                     f"sheet: {page+1}, template: letter_standard_v4")
         c.showPage()
 
         # ── Back page ───────────────────────────────────────────────────────
@@ -170,12 +141,12 @@ def build_pdf(
 
             if back_bytes:
                 x, y = _card_position(mirrored_i)
-                _place_image(c, back_bytes, x, y, extend_corners=extend_corners)
+                _place_image(c, back_bytes, x, y)
 
-        c.setFont("Helvetica", 6)
-        c.setFillColorRGB(0.6, 0.6, 0.6)
-        c.drawString(REG_INSET, REG_INSET * 0.4,
-                     f"ProxyForge | Page {page+1} back  | Print at 100% scale, no fit-to-page")
+        c.setFont("Helvetica", 8)
+        c.setFillColorRGB(0.4, 0.4, 0.4)
+        c.drawString(MARGIN, MARGIN * 0.3,
+                     f"sheet: {page+1}, template: letter_standard_v4")
         c.showPage()
 
     c.save()
