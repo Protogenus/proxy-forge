@@ -37,23 +37,19 @@ ROWS = 2
 CARDS_PER_PAGE = COLS * ROWS
 
 # ── Registration mark geometry (pixel units at 300 PPI) ──────────────────────
-# Silhouette "Max Space" settings (10mm = 118px @ 300 DPI)
-REG_INSET_PX = 118
-REG_SIZE_PX  = 118
-REG_THICK_PX = 6
-REG_GAP_PX   = 0     # No gap to maximize printable area
+# ── Registration mark geometry (pixel units matching Official PDF) ──────────
+REG_INSET_PX = 113
+REG_SIZE_PX  = 71
+REG_THICK_PX = 12
+REG_GAP_PX   = 3
 
-# ── Printable area (inside reg marks + gap) ───────────────────────────────────
-PRINT_X = REG_INSET_PX + REG_SIZE_PX + REG_GAP_PX
-PRINT_Y = REG_INSET_PX + REG_SIZE_PX + REG_GAP_PX
-PRINT_W = PAGE_W_PX - PRINT_X - (REG_INSET_PX + REG_SIZE_PX + REG_GAP_PX)
-PRINT_H = PAGE_H_PX - PRINT_Y - (REG_INSET_PX + REG_SIZE_PX + REG_GAP_PX)
+# ── Card grid (coordinates matching Official PDF) ───────────────────────────
+GRID_X = 189
+GRID_Y = 225
 
-# ── Card grid: centre the 4×4 grid in the printable area ─────────────────────
-GRID_W = COLS * CARD_W_PX
-GRID_H = ROWS * CARD_H_PX
-GRID_X = PRINT_X + (PRINT_W - GRID_W) // 2
-GRID_Y = PRINT_Y + (PRINT_H - GRID_H) // 2
+# 700px gap discovered between Card 1 and Card 2 in Official PDF
+CARD_GAP_X = 700  # Note: Standard card is 744, so they overlap by 44px
+CARD_GAP_Y = CARD_H_PX # Assume standard vertical stacking
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -92,13 +88,12 @@ def _draw_reg_marks(page: Image.Image) -> None:
 def _card_top_left(index: int) -> tuple[int, int]:
     """
     Return the (x, y) top-left pixel corner of card slot [index].
-    Index 0 = top-left, reading order left→right, top→bottom.
-    PIL y=0 is the top of the image.
+    Index 0 = top-left, using Official PDF spacing.
     """
     col = index % COLS
     row = index // COLS
-    x = GRID_X + col * CARD_W_PX
-    y = GRID_Y + row * CARD_H_PX
+    x = GRID_X + col * CARD_GAP_X
+    y = GRID_Y + row * CARD_GAP_Y
     return x, y
 
 
