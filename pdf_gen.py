@@ -33,7 +33,7 @@ CARD_W_PX = 744
 CARD_H_PX = 1039
 
 COLS = 4
-ROWS = 4
+ROWS = 2
 CARDS_PER_PAGE = COLS * ROWS
 
 # ── Registration mark geometry (pixel units at 300 PPI) ──────────────────────
@@ -81,7 +81,7 @@ def _draw_reg_marks(page: Image.Image) -> None:
     # Top-right: L (top bar + left vertical)
     tr_x, tr_y = W - i - s, i
     draw.rectangle([tr_x, tr_y, tr_x + s, tr_y + t], fill=(0, 0, 0))  # horizontal
-    draw.rectangle([tr_x, tr_y, tr_x + t, tr_y + s], fill=(0, 0, 0))  # vertical
+    draw.rectangle([tr_x + s - t, tr_y, tr_x + s, tr_y + s], fill=(0, 0, 0))  # vertical
 
     # Bottom-left: L (bottom bar + right vertical)
     bl_x, bl_y = i, H - i - s
